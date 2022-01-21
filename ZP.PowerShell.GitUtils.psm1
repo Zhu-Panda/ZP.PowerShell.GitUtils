@@ -1,30 +1,28 @@
 # Opens your Git directory.
 Function ZP-OpenGitDir
 {
-    Set-Location $ZPConfig.Git.DefaultDir
+    [CmdletBinding(PositionalBinding = $False)]
+    Param
+    (
+        [Parameter()][String]$Path
+    )
+    Set-Location $ZPConfig.GitUtils.DefaultDir
+    If (![IO.Path]::IsPathRooted($Path) -And (Resolve-Path $Path).Path.StartsWith($ZPConfig.GitUtils.DefaultDir))
+    {
+        Set-Location $Path
+    }
 }
 # Gets your directory name.
 Function ZP-GetGitRepo
 {
-    [CmdletBinding(PositionalBinding = $False)]
-    Param
-    (
-        [Parameter()][Switch]$NoThrow
-    )
-    $Message = ZP-NewTempFile -Identifier ZP.Git
+    $Message = ZP-NewTempFile -Identifier ZP.GitUtils
     git status 2> $Message.FullName
     If ((Get-Content $Message.FullName) -Match "fatal:")
     {
         ZP-RemoveTempFile -TempFile $Message
-        $Exception = ZP-NewObject -Source ZP.Git -Message "Not in a Git repository." -ZPObjectType ZP.Exception.GitDirectoryNotFoundException
-        If ($NoThrow) 
-        {
-            Return $Exception
-        } Else
-        {
-            Throw $Exception
-        }
-    } Else
+        Write-Error "Not in a Git repository."
+    }
+    Else
     {
         ZP-RemoveTempFile -TempFile $Message
         Write-Output (Split-Path -Leaf (git rev-parse --show-toplevel))
@@ -33,91 +31,94 @@ Function ZP-GetGitRepo
 # Gets information about your Git head.
 Function ZP-GetGitHead
 {
-    [CmdletBinding(PositionalBinding = $False)]
-    Param (
-        [Parameter()][Switch]$NoThrow
-    )
-    $Message = ZP-NewTempFile -Identifier ZP.Git
+    $Message = ZP-NewTempFile -Identifier ZP.GitUtils
     git status 2> $Message.FullName
-    If ((Get-Content $Message.FullName) -Match "fatal:") {
+    If ((Get-Content $Message.FullName) -Match "fatal:")
+    {
         ZP-RemoveTempFile -TempFile $Message
-        $Exception = ZP-NewObject -Source ZP.Git -Message "Not in a Git repository." -ZPObjectType ZP.Exception.GitDirectoryNotFoundException
-        If ($NoThrow) {
-            Return $Exception
-        } Else {
-            Throw $Exception
-        }
-    } Else {
+        Write-Error "Not in a Git repository."
+    }
+    Else
+    {
         ZP-RemoveTempFile -TempFile $Message
-        If (git branch --show-current = "") {
+        If (git branch --show-current = "")
+        {
             Write-Output ("Detached : " + (git rev-parse --short HEAD))
-        } Else {
+        }
+        Else
+        {
             Write-Output ("Attached : " + (git branch --show-current))
         }
     }
 }
+# Gets information about your Git status.
 Function ZP-GetGitStatus
 {
-    [CmdletBinding(PositionalBinding = $False)]
-    Param (
-        [Parameter()][Switch]$NoThrow
-    )
-    $Message = ZP-NewTempFile -Identifier ZP.Git
+    $Message = ZP-NewTempFile -Identifier ZP.GitUtils
     git status 2> $Message.FullName
-    If ((Get-Content $Message.FullName) -Match "fatal:") {
+    If ((Get-Content $Message.FullName) -Match "fatal:")
+    {
         ZP-RemoveTempFile -TempFile $Message
-        $Exception = ZP-NewObject -Source ZP.Git -Message "Not in a Git repository." -ZPObjectType ZP.Exception.GitDirectoryNotFoundException
-        If ($NoThrow) {
-            Return $Exception
-        } Else {
-            Throw $Exception
-        }
-    } Else {
+        Write-Error "Not in a Git repository."
+    }
+    Else
+    {
         ZP-RemoveTempFile -TempFile $Message
         $Status = (git status -b --porcelain=v2 -z) -Split "`0"
-        If (($Status[3] -Split " ")[1] -Ne "branch.ab") {
-            If (($Status[2] -Split " ")[1] -Ne "branch.upstream") {
-                Write-Output $ZPConfig.Git.Icons.Branch.Gone
-            } Else {
-                Write-Output $ZPConfig.Git.Icons.Branch.NotFound
+        If (($Status[3] -Split " ")[1] -Ne "branch.ab")
+        {
+            If (($Status[2] -Split " ")[1] -Ne "branch.upstream")
+            {
+                Write-Output $ZPConfig.GitUtils.Icons.Branch.Gone
             }
-        } Else {
-            Write-Output (($Status[3] -split " ")[2] -Replace "\+", $ZPConfig.Git.Icons.Branch.Ahead) + " " + (($Status[3] -split " ")[3] -Replace "-", $ZPConfig.Git.Icons.Branch.Behind)
+            Else
+            {
+                Write-Output $ZPConfig.GitUtils.Icons.Branch.NotFound
+            }
+        }
+        Else
+        {
+            Write-Output (($Status[3] -split " ")[2] -Replace "\+", $ZPConfig.GitUtils.Icons.Branch.Ahead) + " " + (($Status[3] -split " ")[3] -Replace "-", $ZPConfig.GitUtils.Icons.Branch.Behind)
         }
     }
 }
+# Set your branch's upstream.
 Function ZP-SetUpstream
 {   
     [CmdletBinding(PositionalBinding = $False)]   
-    Param (
+    Param
+    (
         [Parameter(Mandatory)][String]$LocalBranch,
         [Parameter(Mandatory)][String]$UpstreamBranch,
         [Parameter(Mandatory)][String]$UpstreamRemote,
         [Parameter()][Switch]$Force,
         [Parameter()][Switch]$NoThrow
     )
-    $Message = ZP-NewTempFile -Identifier ZP.Git
+    $Message = ZP-NewTempFile -Identifier ZP.GitUtils
     git status 2> $Message.FullName
-    If ((Get-Content $Message.FullName) -Match "fatal:") {
+    If ((Get-Content $Message.FullName) -Match "fatal:")
+    {
         ZP-RemoveTempFile -TempFile $Message
-        $Exception = ZP-NewObject -Source ZP.Git -Message "Not in a Git repository." -ZPObjectType ZP.Exception.GitDirectoryNotFoundException
-        If ($NoThrow) {
-            Return $Exception
-        } Else {
-            Throw $Exception
-        }
-    } Else {
-        If ($Force) {
+        Write-Error "Not in a Git repository."
+    }
+    Else
+    {
+        If ($Force)
+        {
             git config --unset branch.$($LocalBranch).remote
             git config --unset branch.$($LocalBranch).merge
             git config branch.$($LocalBranch).remote $UpstreamRemote
             git config branch.$($LocalBranch).merge refs/heads/$UpstreamBranch
-        } Else {
+        }
+        Else
+        {
             git branch -u $UpstreamRemote/$UpstreamBranch $LocalBranch 2> $Message.FullName
-            If ((Get-Content $Message.FullName) -Match "error:") {
-                "T"
-            } Else {
-                "F"
+            If ((Get-Content $Message.FullName) -Match "error:")
+            {
+                Write-Error "Can't set upstream of branch $LocalBranch."
+            }
+            Else
+            {
             }
             ZP-RemoveTempFile -TempFile $Message
         }
