@@ -7,7 +7,7 @@ Function ZP-OpenGitDir
         [Parameter()][String]$Path
     )
     Set-Location $ZPConfig.GitUtils.DefaultDir
-    If ((-Not [IO.Path]::IsPathRooted($Path)) -And (Resolve-Path $Path -ErrorAction Ignore).Path.StartsWith($ZPConfig.GitUtils.DefaultDir))
+    If (($Path -Ne "") -And (Resolve-Path $Path -ErrorAction Ignore).Path.StartsWith($ZPConfig.GitUtils.DefaultDir))
     {
         Set-Location $Path
     }
