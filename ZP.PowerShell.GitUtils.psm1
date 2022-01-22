@@ -12,7 +12,7 @@ Function ZP-OpenGitDir
         Set-Location $Path
     }
 }
-# Gets your directory name.
+# Gets your repo name.
 Function ZP-GetGitRepo
 {
     $Message = ZP-NewTempFile -Identifier ZP.GitUtils
