@@ -91,8 +91,7 @@ Function ZP-SetUpstream
         [Parameter(Mandatory)][String]$LocalBranch,
         [Parameter(Mandatory)][String]$UpstreamBranch,
         [Parameter(Mandatory)][String]$UpstreamRemote,
-        [Parameter()][Switch]$Force,
-        [Parameter()][Switch]$NoThrow
+        [Parameter()][Switch]$Force
     )
     $Message = ZP-NewTempFile -Identifier ZP.GitUtils
     git status 2> $Message.FullName
