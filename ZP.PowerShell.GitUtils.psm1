@@ -12,6 +12,33 @@ Function ZP-OpenGitDir
         Set-Location $Path
     }
 }
+# Creates a new repo.
+Function ZP-NewGitRepo
+{
+    [CmdletBinding(PositionalBinding = $False)]
+    Param
+    (
+        [Parameter(Mandatory)][String]$RepoName,
+        [Parameter()][String]$RemoteURL
+    )
+    Set-Location $ZPConfig.GitUtils.DefaultDir
+    New-Item $RepoName -ItemType Directory -ErrorAction Ignore
+    If (-Not $?)
+    {
+        Write-Error ("Repo `"" + $RepoName + "`" already exists.")
+        Return
+    }
+    Set-Location $RepoName
+    git init
+    ("# " + $RepoName) > README.md
+    git add README.md
+    git commit -m "Inital commit"
+    If ($RemoteURL.Length -Gt 0)
+    {
+        git remote add origin $RemoteURL
+        ZP-SetUpstream -LocalBranch main -UpstreamBranch main -UpstreamRemote origin -Force
+    }
+}
 # Gets your repo name.
 Function ZP-GetGitRepo
 {
