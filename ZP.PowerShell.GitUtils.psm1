@@ -1,3 +1,14 @@
+# Argument completer for ZP-OpenGitDir.
+$ArgCompletionScript = 
+{
+    Param (
+        $CommandName,
+        $ParameterName,
+        $PathToComplete
+    )
+    Get-ChildItem -Path "$($ZPConfig.GitUtils.DefaultDir)\$($PathToComplete)*" | Select-Object -ExpandProperty Name
+}
+Register-ArgumentCompleter -CommandName ZP-OpenGitDir -ParameterName Path -ScriptBlock $ArgCompletionScript
 # Opens your Git directory.
 Function ZP-OpenGitDir
 {
