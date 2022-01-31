@@ -132,7 +132,7 @@ Function ZP-SetUpstream
         [Parameter()][Switch]$Force
     )
     $Message = ZP-NewTempFile -Identifier ZP.GitUtils
-    git status 2> $Message.FullName
+    git status 2> $Message.FullName 1> $Null
     If ((Get-Content $Message.FullName) -Match "fatal:")
     {
         ZP-RemoveTempFile -TempFile $Message
@@ -149,7 +149,7 @@ Function ZP-SetUpstream
         }
         Else
         {
-            git branch -u $UpstreamRemote/$UpstreamBranch $LocalBranch 2> $Message.FullName
+            git branch -u $UpstreamRemote/$UpstreamBranch $LocalBranch 2> $Message.FullName 1> $Null
             If ((Get-Content $Message.FullName) -Match "error:")
             {
                 Write-Error "Can't set upstream of branch $LocalBranch."
