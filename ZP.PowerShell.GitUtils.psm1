@@ -4,12 +4,50 @@ Function ZP-OpenGitDir
     [CmdletBinding(PositionalBinding = $False)]
     Param
     (
-        [Parameter()][String]$Path
+        [Parameter()]
+        [ArgumentCompleter(
+            {
+                Param (
+                    $CommandName,
+                    $ParameterName,
+                    $PathToComplete
+                )
+                Get-ChildItem -Path "$($ZPConfig.GitUtils.DefaultDir)\$($PathToComplete)*" | Select-Object -ExpandProperty Name
+            }
+        )]
+        [String]$Path
     )
     Set-Location $ZPConfig.GitUtils.DefaultDir
-    If ((-Not [IO.Path]::IsPathRooted($Path)) -And (Resolve-Path $Path -ErrorAction Ignore).Path.StartsWith($ZPConfig.GitUtils.DefaultDir))
+    If (($Path -Ne "") -And (Resolve-Path $Path -ErrorAction Ignore).Path.StartsWith($ZPConfig.GitUtils.DefaultDir))
     {
         Set-Location $Path
+    }
+}
+# Creates a new repo.
+Function ZP-NewGitRepo
+{
+    [CmdletBinding(PositionalBinding = $False)]
+    Param
+    (
+        [Parameter(Mandatory)][String]$RepoName,
+        [Parameter()][String]$RemoteURL
+    )
+    Set-Location $ZPConfig.GitUtils.DefaultDir
+    New-Item $RepoName -ItemType Directory -ErrorAction Ignore
+    If (-Not $?)
+    {
+        Write-Error ("Repo `"" + $RepoName + "`" already exists.")
+        Return
+    }
+    Set-Location $RepoName
+    git init
+    ("# " + $RepoName) > README.md
+    git add README.md
+    git commit -m "Inital commit"
+    If ($RemoteURL.Length -Gt 0)
+    {
+        git remote add origin $RemoteURL
+        ZP-SetUpstream -LocalBranch main -UpstreamBranch main -UpstreamRemote origin -Force
     }
 }
 # Gets your repo name.
@@ -91,11 +129,10 @@ Function ZP-SetUpstream
         [Parameter(Mandatory)][String]$LocalBranch,
         [Parameter(Mandatory)][String]$UpstreamBranch,
         [Parameter(Mandatory)][String]$UpstreamRemote,
-        [Parameter()][Switch]$Force,
-        [Parameter()][Switch]$NoThrow
+        [Parameter()][Switch]$Force
     )
     $Message = ZP-NewTempFile -Identifier ZP.GitUtils
-    git status 2> $Message.FullName
+    git status 2> $Message.FullName 1> $Null
     If ((Get-Content $Message.FullName) -Match "fatal:")
     {
         ZP-RemoveTempFile -TempFile $Message
@@ -112,7 +149,7 @@ Function ZP-SetUpstream
         }
         Else
         {
-            git branch -u $UpstreamRemote/$UpstreamBranch $LocalBranch 2> $Message.FullName
+            git branch -u $UpstreamRemote/$UpstreamBranch $LocalBranch 2> $Message.FullName 1> $Null
             If ((Get-Content $Message.FullName) -Match "error:")
             {
                 Write-Error "Can't set upstream of branch $LocalBranch."
